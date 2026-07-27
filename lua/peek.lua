@@ -105,7 +105,13 @@ local show_location = function(session)
                 session.match_id = nil
         end
 
-        vim.api.nvim_win_set_buf(session.winid, entry.bufnr)
+        vim.api.nvim_win_call(session.winid, function()
+                vim.api.nvim_cmd({
+                        cmd = "buffer",
+                        args = { tostring(entry.bufnr) },
+                        mods = { hide = true, noautocmd = true },
+                }, {})
+        end)
         vim.api.nvim_win_set_cursor(session.winid, entry.pos)
         vim.wo[session.winid].winbar = #session.entries > 1 and winbar_for_session(session) or ""
         if vim.api.nvim_win_get_config(session.winid).relative ~= "" then
