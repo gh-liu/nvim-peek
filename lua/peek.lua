@@ -249,35 +249,39 @@ local methods = {
         },
 }
 
-function M.peek(kind, focus)
-        kind = kind or "ref"
-        local request = methods[kind]
-        if not request then
-                error(("Unknown peek method: %s"):format(kind))
+---@param method string?
+---@param opts? { title?: string, focus?: boolean }
+function M.peek(method, opts)
+        method = method or methods.ref.method
+        opts = opts or {}
+        local request = { method = method, title = method }
+        for _, value in pairs(methods) do
+                if value.method == method then
+                        request = value
+                        break
+                end
         end
         local bufnr = vim.api.nvim_get_current_buf()
         local params = client_position_params(nil, request.extra)
-        local callback = preview_location_callback(request.title, focus, bufnr)
+        local callback = preview_location_callback(opts.title or request.title, opts.focus, bufnr)
         return vim.lsp.buf_request(bufnr, request.method, params, callback)
 end
 
 function M.peek_definition(focus)
-        return M.peek("def", focus)
+        return M.peek(methods.def.method, { focus = focus })
 end
 
 function M.peek_implementation(focus)
-        return M.peek("impl", focus)
+        return M.peek(methods.impl.method, { focus = focus })
 end
 
 function M.peek_references(focus)
-        return M.peek("ref", focus)
+        return M.peek(methods.ref.method, { focus = focus })
 end
 
 M.on_attach = function(client, buf)
-        vim.keymap.set("n", "grp", M.peek_definition, { buffer = buf })
-
         vim.api.nvim_buf_create_user_command(buf, "Peek", function(opts)
-                local arg = opts.args or "def"
+                local arg = opts.args ~= "" and opts.args or "def"
                 local offset = tonumber(arg)
                 if offset then
                         if offset % 1 ~= 0 then
@@ -286,12 +290,12 @@ M.on_attach = function(client, buf)
                         change_location(offset)
                         return
                 end
-                M.peek(arg, opts.bang)
+                M.peek(methods[arg] and methods[arg].method or arg, { focus = opts.bang })
         end, {
                 nargs = "?",
                 bang = true,
                 complete = function()
-                        return { "ref", "def", "impl", "+1", "-1" }
+                        return vim.list_extend(vim.tbl_keys(methods), { "+1", "-1" })
                 end,
         })
 end
