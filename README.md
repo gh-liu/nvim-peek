@@ -6,6 +6,8 @@ methods in Neovim's preview window without leaving the current buffer.
 Multiple locations are kept in one preview session and can be selected from
 the winbar or with the `:Peek +1` and `:Peek -1` commands.
 
+<img width="1244" height="756" alt="peek" src="https://github.com/user-attachments/assets/3a38e148-ada5-4d05-bfbf-ff3fe35bfd93" />
+
 ## Installation
 
 ```lua
