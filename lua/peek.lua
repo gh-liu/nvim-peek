@@ -35,13 +35,14 @@ local location_entry = function(loc)
         }
 end
 
-local winbar_for_session = function(session)
+local winbar_for_session = function(session, footer)
         local labels = vim.iter(session.entries)
             :map(function(entry)
                     return entry.label
             end)
             :totable()
-        local max_width = math.max(20, vim.api.nvim_win_get_width(session.winid) - 4)
+        local footer_width = footer and vim.fn.strdisplaywidth(footer) or 0
+        local max_width = math.max(20, vim.api.nvim_win_get_width(session.winid) - footer_width - 4)
         local start_index, end_index = session.index, session.index
 
         local display_width = function(first, last)
@@ -88,6 +89,9 @@ local winbar_for_session = function(session)
         if end_index < #labels then
                 table.insert(parts, " │ …")
         end
+        if footer then
+                table.insert(parts, "%=" .. footer:gsub("%%", "%%%%"))
+        end
         return table.concat(parts)
 end
 
@@ -113,10 +117,19 @@ local show_location = function(session)
                 }, {})
         end)
         vim.api.nvim_win_set_cursor(session.winid, entry.pos)
-        vim.wo[session.winid].winbar = #session.entries > 1 and winbar_for_session(session) or ""
-        if vim.api.nvim_win_get_config(session.winid).relative ~= "" then
+        local config = vim.api.nvim_win_get_config(session.winid)
+        local is_float = config.relative ~= ""
+        local footer = (" %s %d / %d "):format(session.title, session.index, #session.entries)
+        if #session.entries > 1 then
+                vim.wo[session.winid].winbar = winbar_for_session(session, not is_float and footer or nil)
+        elseif is_float then
+                vim.wo[session.winid].winbar = ""
+        else
+                vim.wo[session.winid].winbar = "%#WinBar#%=" .. footer:gsub("%%", "%%%%")
+        end
+        if is_float then
                 vim.api.nvim_win_set_config(session.winid, {
-                        footer = (" %s %d / %d "):format(session.title, session.index, #session.entries),
+                        footer = footer,
                         footer_pos = "right",
                 })
         end
